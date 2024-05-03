@@ -131,4 +131,11 @@ fabric.properties
 .history
 .ionide
 
+0*
+1*
+2*
+3*
+4*
+pbgen
+
 # End of https://www.toptal.com/developers/gitignore/api/goland+all,visualstudiocode,go
