@@ -58,27 +58,29 @@ type APIResponse struct {
 }
 
 func GetProblemDetails(id int) (*ProblemDetails, error) {
-	resp, err := http.Get(fmt.Sprintf("https://new.pbinfo.ro/json/probleme/%d", id))
+	url := fmt.Sprintf("https://new.pbinfo.ro/json/probleme/%d", id)
+	resp, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("error making HTTP request: %w", err)
+		return nil, fmt.Errorf("failed to make HTTP request: %w", err)
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
 	var data APIResponse
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		fmt.Println("Error decoding JSON:", err)
-		return nil, fmt.Errorf("error decoding JSON: %w", err)
+		return nil, fmt.Errorf("failed to decode JSON response: %w", err)
 	}
 
 	if string(data.Problem) == "false" {
 		return nil, fmt.Errorf("problem doesn't exist")
 	}
 
-	fmt.Println(string(data.Problem))
-
 	var problem ProblemDetails
 	if err := json.Unmarshal(data.Problem, &problem); err != nil {
-		return nil, fmt.Errorf("error unmarshaling problem field: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal problem details: %w", err)
 	}
 
 	return &problem, nil

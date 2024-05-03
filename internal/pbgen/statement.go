@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"strconv"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/JohannesKaufmann/html-to-markdown/plugin"
@@ -19,6 +20,7 @@ type Example struct {
 
 type ProblemMetadata struct {
 	Id           uint16
+	Name         string
 	IsInputFile  bool
 	IsOutputFile bool
 	MemoryLimit  float32
@@ -28,7 +30,7 @@ type ProblemMetadata struct {
 	Source       string
 	Author       string
 	PostedBy     string
-	Difficulty   uint8
+	Difficulty   string
 }
 
 type Problem struct {
@@ -41,8 +43,45 @@ type Problem struct {
 }
 
 func ConvertProblemToMarkdown(problem *ProblemDetails) (string, error) {
+	id := uint16(problem.ID)
+	usesConsole := (problem.UseConsole == "0")
+	memoryLimit, _ := strconv.ParseFloat(problem.MemoryLimit, 32)
+	timeLimit, _ := strconv.ParseFloat(problem.TimeLimit, 32)
+	stackLimit, _ := strconv.ParseFloat(problem.StackLimit, 32)
+	grade := uint8(problem.Grade)
+
+	var difficulty string
+	switch problem.Difficulty {
+	case 1:
+		difficulty = "Ușoară"
+	case 2:
+		difficulty = "Medie"
+	case 3:
+		difficulty = "Dificilă"
+	default:
+		difficulty = "Concurs"
+	}
+
+	metadata := ProblemMetadata{
+		Id:           id,
+		Name:         problem.Name,
+		IsInputFile:  !usesConsole,
+		IsOutputFile: !usesConsole,
+		TimeLimit:    float32(timeLimit),
+		MemoryLimit:  float32(memoryLimit),
+		StackLimit:   float32(stackLimit),
+		Grade:        grade,
+		Source:       problem.ProblemSource,
+		Author:       problem.Author,
+		Difficulty:   difficulty,
+		PostedBy:     fmt.Sprintf("%s %s", problem.User.Prenume, problem.User.Nume),
+	}
+
+	p := Problem{
+		Metadata: metadata,
+	}
 	htmlTemplate :=
-		`<h1><a href="https://new.pbinfo.ro/probleme/{{.ID}}/{{.Name}}">{{.Name}} #{{.ID}}</a></h1>
+		`<h1><a href="https://new.pbinfo.ro/probleme/{{.Metadata.Id}}/{{.Metadata.Name}}">{{.Metadata.Name}} #{{.Metadata.Id}}</a></h1>
 		
 <table>
 	<tr>
@@ -51,32 +90,19 @@ func ConvertProblemToMarkdown(problem *ProblemDetails) (string, error) {
 		<th>Intrare/Ieșire</th>
 		<th>Limită timp</th>
 		<th>Limită memorie</th>
-		<th>Sursă</th>
-		<th>Autor</th>
+		{{if .Metadata.Source}}<th>Sursă</th>{{end}}
+		{{if .Metadata.Author}}<th>Autor</th>{{end}}
 		<th>Dificultate</th>
 	</tr>
 	<tr>
-		<td>{{.User.Prenume}} {{.User.Nume}}</td>
-		<td>{{.Grade}}</td>
-		{{if eq .UseConsole "0"}}
-		<td>Fișier</td>
-		{{else}}
-		<td>Tastatură/Ecran</td>
-		{{end}}
-		<td>{{.TimeLimit}} s</td>
-		<td>{{.MemoryLimit}}MB / {{.StackLimit}}MB</td>
-		<td>{{.ProblemSource}}</td>
-		<td>{{.Author}}</td>
-		<td>
-		{{if eq .Difficulty 1}}
-		Ușoară
-		{{else if eq .Difficulty 2}}
-		Medie
-		{{else if eq .Difficulty 3}}
-		Dificilă
-		{{else}}
-		Concurs
-		{{end}}</td>
+		<td>{{.Metadata.PostedBy}}</td>
+		<td>{{.Metadata.Grade}}</td>
+		<td>{{if .Metadata.IsInputFile}}Fișier{{else}}Tastatură/ecran{{end}}</td>
+		<td>{{.Metadata.TimeLimit}} s</td>
+		<td>{{.Metadata.MemoryLimit}}MB / {{.Metadata.StackLimit}}MB</td>
+		{{if .Metadata.Source}}<td>{{.Metadata.Source}}</td>{{end}}
+		{{if .Metadata.Author}}<td>{{.Metadata.Author}}</td>{{end}}
+		<td>{{.Metadata.Difficulty}}</td>
 	</tr>
 </table>`
 	tmpl, err := template.New("html").Parse(htmlTemplate)
@@ -86,7 +112,7 @@ func ConvertProblemToMarkdown(problem *ProblemDetails) (string, error) {
 	}
 
 	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, problem)
+	err = tmpl.Execute(&buf, p)
 	if err != nil {
 		fmt.Println("Error executing template:", err)
 		return "", err
