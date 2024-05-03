@@ -44,7 +44,7 @@ type Problem struct {
 
 func ConvertProblemToMarkdown(problem *ProblemDetails) (string, error) {
 	id := uint16(problem.ID)
-	usesConsole := (problem.UseConsole == "0")
+	usesConsole := (problem.UseConsole == "1")
 	memoryLimit, _ := strconv.ParseFloat(problem.MemoryLimit, 32)
 	timeLimit, _ := strconv.ParseFloat(problem.TimeLimit, 32)
 	stackLimit, _ := strconv.ParseFloat(problem.StackLimit, 32)
@@ -120,10 +120,10 @@ func ConvertProblemToMarkdown(problem *ProblemDetails) (string, error) {
 
 	mark := md.NewConverter("new.pbinfo.ro", true, nil)
 	mark.Use(plugin.Table())
-	markdown, err := mark.ConvertString(buf.String())
+	markdown, err := mark.ConvertBytes(buf.Bytes())
 	if err != nil {
 		log.Fatal(err)
 		return "", err
 	}
-	return markdown, nil
+	return string(markdown), nil
 }
