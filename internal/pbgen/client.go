@@ -9,6 +9,7 @@ import (
 type ProblemDetails struct {
 	ID             int    `json:"id"`
 	ProgLang       string `json:"limbaj_de_programare"`
+	Name           string `json:"denumire"`
 	Difficulty     int    `json:"dificultate"`
 	Grade          int    `json:"clasa"`
 	TimeLimit      string `json:"limita_timp"`
@@ -28,7 +29,6 @@ type ProblemDetails struct {
 	Statement      string `json:"enunt_html"`
 	Summary        string `json:"rezumat_html"`
 	Solution       string `json:"solutie_html"`
-	NumarSurse     string `json:"numar_surse"`
 	Etichete       []any  `json:"etichete"`
 	Tags           []struct {
 		Tag struct {
@@ -73,6 +73,8 @@ func GetProblemDetails(id int) (*ProblemDetails, error) {
 	if string(data.Problem) == "false" {
 		return nil, fmt.Errorf("problem doesn't exist")
 	}
+
+	fmt.Println(string(data.Problem))
 
 	var problem ProblemDetails
 	if err := json.Unmarshal(data.Problem, &problem); err != nil {

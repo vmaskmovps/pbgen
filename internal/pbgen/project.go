@@ -5,29 +5,25 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-
-	md "github.com/JohannesKaufmann/html-to-markdown"
 )
 
 func CreateProject(lang string, id int, basedir *os.File) error {
-	projectDir := filepath.Join(basedir.Name(), fmt.Sprintf("%d/%s", id, lang))
-	if err := os.MkdirAll(projectDir, 0755); err != nil {
-		return err
-	}
-
 	problem, err := GetProblemDetails(id)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	converter := md.NewConverter("", true, nil)
-	markdown, err := converter.ConvertBytes([]byte(problem.Statement))
+	projectDir, _ := filepath.Abs(filepath.Join(basedir.Name(), fmt.Sprintf("%04d-%s/%s", id, problem.Name, lang)))
+	if err := os.MkdirAll(projectDir, 0755); err != nil {
+		return err
+	}
+
+	markdown, err := ConvertProblemToMarkdown(problem)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("md ->", string(markdown))
 
-	f, err := os.Create(fmt.Sprintf("%d/%s/cerinta.md", id, lang))
+	f, err := os.Create(filepath.Join(projectDir, "README.md"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,6 +40,6 @@ func CreateProject(lang string, id int, basedir *os.File) error {
 		return fmt.Errorf("unsupported language: %s", lang)
 	}
 
-	f.Write(markdown)
+	f.Write([]byte(markdown))
 	return nil
 }
