@@ -8,17 +8,17 @@ import (
 )
 
 func CreateProject(lang string, id int, basedir *os.File) error {
-	problem, err := GetProblemDetails(id)
+	problem, err := NewProblemFromId(id)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	projectDir, _ := filepath.Abs(filepath.Join(basedir.Name(), fmt.Sprintf("%04d-%s/%s", id, problem.Name, lang)))
+	projectDir, _ := filepath.Abs(filepath.Join(basedir.Name(), fmt.Sprintf("%04d-%s/%s", id, problem.Metadata.Name, lang)))
 	if err := os.MkdirAll(projectDir, 0755); err != nil {
 		return err
 	}
 
-	markdown, err := ConvertProblemToMarkdown(problem)
+	markdown, err := problem.ToMarkdown()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,7 +27,12 @@ func CreateProject(lang string, id int, basedir *os.File) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer f.Close()
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			return
+		}
+	}(f)
 
 	switch lang {
 	case "c":
@@ -40,6 +45,9 @@ func CreateProject(lang string, id int, basedir *os.File) error {
 		return fmt.Errorf("unsupported language: %s", lang)
 	}
 
-	f.Write([]byte(markdown))
+	_, err = f.Write([]byte(markdown))
+	if err != nil {
+		return err
+	}
 	return nil
 }

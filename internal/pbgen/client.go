@@ -58,7 +58,7 @@ type apiResponse struct {
 	Problem  json.RawMessage `json:"problema"`
 }
 
-func GetProblemDetails(id int) (*ProblemDetails, error) {
+func NewProblemDetails(id int) (*ProblemDetails, error) {
 	url := fmt.Sprintf("https://new.pbinfo.ro/json/probleme/%d", id)
 	resp, err := http.Get(url)
 	if err != nil {
