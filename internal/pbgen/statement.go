@@ -3,12 +3,8 @@ package pbgen
 import (
 	"bytes"
 	"fmt"
-	"html/template"
-	"log"
 	"strconv"
-
-	md "github.com/JohannesKaufmann/html-to-markdown"
-	"github.com/JohannesKaufmann/html-to-markdown/plugin"
+	"text/template"
 )
 
 type Example struct {
@@ -33,25 +29,13 @@ type ProblemMetadata struct {
 	Difficulty   string
 }
 
-type Problem struct {
-	Metadata     ProblemMetadata
-	Statement    string
-	InputData    string
-	OutputData   string
-	Restrictions string
-	Examples     []Example
-}
-
-func ConvertProblemToMarkdown(problem *ProblemDetails) (string, error) {
-	id := uint16(problem.ID)
-	usesConsole := (problem.UseConsole == "1")
-	memoryLimit, _ := strconv.ParseFloat(problem.MemoryLimit, 32)
-	timeLimit, _ := strconv.ParseFloat(problem.TimeLimit, 32)
-	stackLimit, _ := strconv.ParseFloat(problem.StackLimit, 32)
-	grade := uint8(problem.Grade)
+func NewProblemMetadata(details *ProblemDetails) *ProblemMetadata {
+	memoryLimit, _ := strconv.ParseFloat(details.MemoryLimit, 32)
+	timeLimit, _ := strconv.ParseFloat(details.TimeLimit, 32)
+	stackLimit, _ := strconv.ParseFloat(details.StackLimit, 32)
 
 	var difficulty string
-	switch problem.Difficulty {
+	switch details.Difficulty {
 	case 1:
 		difficulty = "Ușoară"
 	case 2:
@@ -63,49 +47,57 @@ func ConvertProblemToMarkdown(problem *ProblemDetails) (string, error) {
 	}
 
 	metadata := ProblemMetadata{
-		Id:           id,
-		Name:         problem.Name,
-		IsInputFile:  !usesConsole,
-		IsOutputFile: !usesConsole,
+		Id:           uint16(details.ID),
+		Name:         details.Name,
+		IsInputFile:  details.UseConsole == "1",
+		IsOutputFile: details.UseConsole == "1",
 		TimeLimit:    float32(timeLimit),
 		MemoryLimit:  float32(memoryLimit),
 		StackLimit:   float32(stackLimit),
-		Grade:        grade,
-		Source:       problem.ProblemSource,
-		Author:       problem.Author,
+		Grade:        uint8(details.Grade),
+		Source:       details.ProblemSource,
+		Author:       details.Author,
 		Difficulty:   difficulty,
-		PostedBy:     fmt.Sprintf("%s %s", problem.User.Prenume, problem.User.Nume),
+		PostedBy:     fmt.Sprintf("%s %s", details.User.Prenume, details.User.Nume),
 	}
 
+	return &metadata
+}
+
+type Problem struct {
+	Metadata     ProblemMetadata
+	Statement    string
+	InputData    string
+	OutputData   string
+	Restrictions string
+	Examples     []Example
+}
+
+func ParseIntoProblem(problem *ProblemDetails) *Problem {
 	p := Problem{
-		Metadata: metadata,
+		Metadata:     *NewProblemMetadata(problem),
+		Statement:    problem.Statement,
+		InputData:    "",
+		OutputData:   "",
+		Restrictions: "",
+		Examples:     make([]Example, 0),
 	}
-	htmlTemplate :=
-		`<h1><a href="https://new.pbinfo.ro/probleme/{{.Metadata.Id}}/{{.Metadata.Name}}">{{.Metadata.Name}} #{{.Metadata.Id}}</a></h1>
-		
-<table>
-	<tr>
-		<th>Postată de</th>
-		<th>Clasă</th>
-		<th>Intrare/Ieșire</th>
-		<th>Limită timp</th>
-		<th>Limită memorie</th>
-		{{if .Metadata.Source}}<th>Sursă</th>{{end}}
-		{{if .Metadata.Author}}<th>Autor</th>{{end}}
-		<th>Dificultate</th>
-	</tr>
-	<tr>
-		<td>{{.Metadata.PostedBy}}</td>
-		<td>{{.Metadata.Grade}}</td>
-		<td>{{if .Metadata.IsInputFile}}Fișier{{else}}Tastatură/ecran{{end}}</td>
-		<td>{{.Metadata.TimeLimit}} s</td>
-		<td>{{.Metadata.MemoryLimit}}MB / {{.Metadata.StackLimit}}MB</td>
-		{{if .Metadata.Source}}<td>{{.Metadata.Source}}</td>{{end}}
-		{{if .Metadata.Author}}<td>{{.Metadata.Author}}</td>{{end}}
-		<td>{{.Metadata.Difficulty}}</td>
-	</tr>
-</table>`
-	tmpl, err := template.New("html").Parse(htmlTemplate)
+
+	return &p
+}
+
+func ConvertProblemToMarkdown(problem *ProblemDetails) (string, error) {
+	p := ParseIntoProblem(problem)
+	headerTemplate :=
+		`# [{{.Metadata.Name}} #{{.Metadata.Id}}](https://new.pbinfo.ro/probleme/{{.Metadata.Id}}/{{.Metadata.Name}})
+	
+{{ ConvertMetadataToMarkdown .Metadata }}
+`
+	tmpl := template.New("header")
+	tmpl = tmpl.Funcs(template.FuncMap{
+		"ConvertMetadataToMarkdown": ConvertMetadataToMarkdown,
+	})
+	tmpl, err := tmpl.Parse(headerTemplate)
 	if err != nil {
 		fmt.Println("Error parsing template:", err)
 		return "", err
@@ -118,12 +110,5 @@ func ConvertProblemToMarkdown(problem *ProblemDetails) (string, error) {
 		return "", err
 	}
 
-	mark := md.NewConverter("new.pbinfo.ro", true, nil)
-	mark.Use(plugin.Table())
-	markdown, err := mark.ConvertBytes(buf.Bytes())
-	if err != nil {
-		log.Fatal(err)
-		return "", err
-	}
-	return string(markdown), nil
+	return string(buf.String()), nil
 }
