@@ -136,6 +136,7 @@ fabric.properties
 2*
 3*
 4*
-pbgen
+./pbgen
+./main
 
 # End of https://www.toptal.com/developers/gitignore/api/goland+all,visualstudiocode,go
