@@ -3,6 +3,7 @@ package pbgen
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -50,7 +51,7 @@ type ProblemDetails struct {
 	SourceName string `json:"nume_sursa"`
 }
 
-type APIResponse struct {
+type apiResponse struct {
 	Status   string          `json:"stare"`
 	Response string          `json:"raspuns"`
 	IsAuthed bool            `json:"user_autentificat"`
@@ -63,13 +64,18 @@ func GetProblemDetails(id int) (*ProblemDetails, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to make HTTP request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			return
+		}
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	var data APIResponse
+	var data apiResponse
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return nil, fmt.Errorf("failed to decode JSON response: %w", err)
 	}
