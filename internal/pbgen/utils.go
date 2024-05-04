@@ -3,6 +3,7 @@ package pbgen
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -77,8 +78,5 @@ func getInputOutput(isInputFile bool) string {
 }
 
 func formatMemory(memory float32) string {
-	if memory >= 1.0 {
-		return fmt.Sprintf("%.0fMB", memory)
-	}
-	return fmt.Sprintf("%.0fKB", memory*1024)
+	return fmt.Sprintf("%s MB", strconv.FormatFloat(float64(memory), 'f', -1, 32))
 }

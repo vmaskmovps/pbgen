@@ -2,6 +2,7 @@ package pbgen
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"text/template"
 )
@@ -35,15 +36,13 @@ func ParseIntoProblem(problem *ProblemDetails) *Problem {
 	return &p
 }
 
-func ConvertProblemToMarkdown(problem *ProblemDetails) (string, error) {
-	p := ParseIntoProblem(problem)
-	headerTemplate :=
-		`# [{{.Metadata.Name}} #{{.Metadata.Id}}](https://new.pbinfo.ro/probleme/{{.Metadata.Id}}/{{.Metadata.Name}})
-	
-{{ MetadataToMarkdown .Metadata }}
+//go:embed problem.tmpl
+var problemTemplate string
 
-`
-	tmpl := template.New("header")
+func ConvertProblemToMarkdown(details *ProblemDetails) (string, error) {
+	pb := ParseIntoProblem(details)
+
+	tmpl := template.New("details")
 	tmpl = tmpl.Funcs(template.FuncMap{
 		"MetadataToMarkdown": func(metadata ProblemMetadata) (string, error) {
 			md, err := metadata.ToMarkdown()
@@ -54,14 +53,14 @@ func ConvertProblemToMarkdown(problem *ProblemDetails) (string, error) {
 		},
 	})
 
-	tmpl, err := tmpl.Parse(headerTemplate)
+	tmpl, err := tmpl.Parse(problemTemplate)
 	if err != nil {
 		fmt.Println("Error parsing template:", err)
 		return "", err
 	}
 
 	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, p)
+	err = tmpl.Execute(&buf, pb)
 	if err != nil {
 		fmt.Println("Error executing template:", err)
 		return "", err
