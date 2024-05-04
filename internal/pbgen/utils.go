@@ -3,7 +3,6 @@ package pbgen
 import (
 	"bytes"
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -12,40 +11,21 @@ type MetadataTable struct {
 	Rows    [][]string
 }
 
-func ConvertMetadataToMarkdown(metadata ProblemMetadata) (string, error) {
-	table := &MetadataTable{
-		Headers: []string{"Postată de", "Clasă", "Intrare/Ieșire", "Limită timp", "Limită memorie", "Sursă", "Autor", "Dificultate"},
-		Rows: [][]string{
-			{metadata.PostedBy,
-				fmt.Sprintf("%d", metadata.Grade),
-				getInputOutput(metadata.IsInputFile),
-				fmt.Sprintf("%s s", strconv.FormatFloat(float64(metadata.TimeLimit), 'f', -2, 32)),
-				fmt.Sprintf("%s / %s", formatMemory(metadata.MemoryLimit), formatMemory(metadata.StackLimit)),
-				metadata.Source,
-				metadata.Author,
-				metadata.Difficulty},
-		},
-	}
-
-	tableMarkdown, err := ConvertTableToMarkdown(table)
-	if err != nil {
-		return "", err
-	}
-
-	return tableMarkdown, nil
+func NewMetadataTable(metadata *ProblemMetadata) *MetadataTable {
+	return metadata.ToTable()
 }
 
-func ConvertTableToMarkdown(table *MetadataTable) (string, error) {
+func (mt *MetadataTable) ToMarkdown() (string, error) {
 	var buf bytes.Buffer
 
-	headerWidths := make([]int, len(table.Headers))
-	skipColumns := make([]bool, len(table.Headers))
-	hasContent := make([]bool, len(table.Headers))
-	for i, header := range table.Headers {
+	headerWidths := make([]int, len(mt.Headers))
+	skipColumns := make([]bool, len(mt.Headers))
+	hasContent := make([]bool, len(mt.Headers))
+	for i, header := range mt.Headers {
 		headerWidths[i] = len(header)
 		hasContent[i] = false
 	}
-	for _, row := range table.Rows {
+	for _, row := range mt.Rows {
 		for i, cell := range row {
 			if len(cell) > headerWidths[i] {
 				headerWidths[i] = len(cell)
@@ -62,7 +42,7 @@ func ConvertTableToMarkdown(table *MetadataTable) (string, error) {
 	}
 
 	buf.WriteString("|")
-	for i, header := range table.Headers {
+	for i, header := range mt.Headers {
 		if !skipColumns[i] {
 			buf.WriteString(fmt.Sprintf(" %-*s |", headerWidths[i], header))
 		}
@@ -76,7 +56,7 @@ func ConvertTableToMarkdown(table *MetadataTable) (string, error) {
 	}
 	buf.WriteString("\n")
 
-	for _, row := range table.Rows {
+	for _, row := range mt.Rows {
 		buf.WriteString("|")
 		for i, cell := range row {
 			if !skipColumns[i] {
@@ -101,11 +81,4 @@ func formatMemory(memory float32) string {
 		return fmt.Sprintf("%.0fMB", memory)
 	}
 	return fmt.Sprintf("%.0fKB", memory*1024)
-}
-
-func formatTime(timeLimit float32) string {
-	if timeLimit == float32(int(timeLimit)) {
-		return fmt.Sprintf("%.0fs", timeLimit)
-	}
-	return fmt.Sprintf("%.1f s", timeLimit)
 }
