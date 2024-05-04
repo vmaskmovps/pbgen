@@ -74,5 +74,5 @@ func (p *Problem) ToMarkdown() (string, error) {
 		return "", err
 	}
 
-	return string(buf.String()), nil
+	return buf.String(), nil
 }

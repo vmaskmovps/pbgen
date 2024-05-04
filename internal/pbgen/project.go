@@ -45,7 +45,7 @@ func CreateProject(lang string, id int, basedir *os.File) error {
 		return fmt.Errorf("unsupported language: %s", lang)
 	}
 
-	_, err = f.Write([]byte(markdown))
+	_, err = f.WriteString(markdown)
 	if err != nil {
 		return err
 	}
