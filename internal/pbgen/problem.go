@@ -7,33 +7,39 @@ import (
 	"text/template"
 )
 
-type Problem struct {
-	Metadata     ProblemMetadata
-	Statement    string
+type Example struct {
+	Name        string
+	Input       string
+	Output      string
+	Explanation string
+}
+
+type StatementDetails struct {
 	InputData    string
 	OutputData   string
 	Restrictions string
-	Examples     []struct {
-		Name        string
-		Input       string
-		Output      string
-		Explanation string
-	}
+	Examples     []Example
 }
 
-func NewProblem(details *ProblemDetails) *Problem {
+func NewStatementDetails() *StatementDetails {
+	return &StatementDetails{}
+}
+
+func (d *StatementDetails) Parse(pd *ProblemDetails) *StatementDetails {
+	// A no-op, for now
+	return d
+}
+
+type Problem struct {
+	Metadata ProblemMetadata
+	Details  StatementDetails
+}
+
+func NewProblem(d *ProblemDetails) *Problem {
+	details := NewStatementDetails().Parse(d)
 	return &Problem{
-		Metadata:     *NewProblemMetadata(details),
-		Statement:    details.Statement,
-		InputData:    "",
-		OutputData:   "",
-		Restrictions: "",
-		Examples: make([]struct {
-			Name        string
-			Input       string
-			Output      string
-			Explanation string
-		}, 0),
+		Metadata: *NewProblemMetadata(d),
+		Details:  *details,
 	}
 }
 
